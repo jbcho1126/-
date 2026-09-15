@@ -6,7 +6,6 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridLayout;
@@ -30,7 +29,8 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        prefs = getSharedPreferences("stock_data", MODE_PRIVATE);
+        prefs = getSharedPreferences("stock_data_v2", MODE_PRIVATE);
+
         loadStocks();
         createScreen();
     }
@@ -53,16 +53,23 @@ public class MainActivity extends Activity {
         root.addView(title);
 
         Button addButton = new Button(this);
-        addButton.setText("+ 관심종목 추가");
+        addButton.setText("+ 관심종목 검색");
         addButton.setTextSize(17);
-        addButton.setOnClickListener(v -> showStockDialog(-1));
+
+        addButton.setOnClickListener(v ->
+                showStockDialog(-1));
+
         root.addView(addButton);
 
         TextView guide = new TextView(this);
-        guide.setText("종목 카드를 길게 누르면 수정 또는 삭제할 수 있습니다.");
+        guide.setText(
+                "종목명으로 관심종목을 추가하세요.\n" +
+                "종목 카드를 길게 누르면 수정 또는 삭제할 수 있습니다."
+        );
         guide.setTextColor(Color.LTGRAY);
         guide.setTextSize(13);
         guide.setPadding(5, 15, 5, 15);
+
         root.addView(guide);
 
         grid = new GridLayout(this);
@@ -71,6 +78,7 @@ public class MainActivity extends Activity {
         root.addView(grid);
 
         scrollView.addView(root);
+
         setContentView(scrollView);
 
         refreshGrid();
@@ -87,12 +95,9 @@ public class MainActivity extends Activity {
 
             TextView stockView = new TextView(this);
 
-            String sign = item.rate > 0 ? "+" : "";
-
             stockView.setText(
-                    item.name + "\n" +
-                    item.code + "\n" +
-                    sign + item.rate + "%"
+                    item.name +
+                    "\n\n데이터 연결 대기"
             );
 
             stockView.setTextColor(Color.WHITE);
@@ -100,30 +105,30 @@ public class MainActivity extends Activity {
             stockView.setGravity(Gravity.CENTER);
             stockView.setPadding(8, 25, 8, 25);
 
-            if (item.rate > 0) {
-                stockView.setBackgroundColor(
-                        Color.rgb(20, 145, 70));
-            } else if (item.rate < 0) {
-                stockView.setBackgroundColor(
-                        Color.rgb(185, 55, 55));
-            } else {
-                stockView.setBackgroundColor(
-                        Color.rgb(90, 90, 90));
-            }
+            stockView.setBackgroundColor(
+                    Color.rgb(70, 75, 82)
+            );
 
             GridLayout.LayoutParams params =
                     new GridLayout.LayoutParams();
 
             params.width = 0;
             params.height = 210;
+
             params.columnSpec =
-                    GridLayout.spec(GridLayout.UNDEFINED, 1f);
+                    GridLayout.spec(
+                            GridLayout.UNDEFINED,
+                            1f
+                    );
+
             params.setMargins(5, 5, 5, 5);
 
             stockView.setLayoutParams(params);
 
             stockView.setOnLongClickListener(v -> {
+
                 showEditDelete(position);
+
                 return true;
             });
 
@@ -133,79 +138,73 @@ public class MainActivity extends Activity {
 
     private void showStockDialog(int position) {
 
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(40, 10, 40, 0);
+        LinearLayout box =
+                new LinearLayout(this);
 
-        EditText nameInput = new EditText(this);
-        nameInput.setHint("종목명");
+        box.setOrientation(
+                LinearLayout.VERTICAL);
+
+        box.setPadding(
+                40, 10, 40, 0);
+
+        EditText nameInput =
+                new EditText(this);
+
+        nameInput.setHint(
+                "종목명 예: 현대제철");
+
         box.addView(nameInput);
 
-        EditText codeInput = new EditText(this);
-        codeInput.setHint("종목코드 예: 005930");
-        box.addView(codeInput);
-
-        EditText rateInput = new EditText(this);
-        rateInput.setHint("등락률 예: 2.35");
-        rateInput.setInputType(
-                android.text.InputType.TYPE_CLASS_NUMBER |
-                android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL |
-                android.text.InputType.TYPE_NUMBER_FLAG_SIGNED
-        );
-        box.addView(rateInput);
-
         if (position >= 0) {
-            Stock stock = stocks.get(position);
-            nameInput.setText(stock.name);
-            codeInput.setText(stock.code);
-            rateInput.setText(String.valueOf(stock.rate));
+
+            Stock stock =
+                    stocks.get(position);
+
+            nameInput.setText(
+                    stock.name);
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(position >= 0 ? "종목 수정" : "관심종목 추가")
+        AlertDialog dialog =
+                new AlertDialog.Builder(this)
+
+                .setTitle(
+                        position >= 0
+                                ? "종목명 수정"
+                                : "관심종목 검색")
+
                 .setView(box)
-                .setPositiveButton("저장", null)
-                .setNegativeButton("취소", null)
+
+                .setPositiveButton(
+                        position >= 0
+                                ? "저장"
+                                : "추가",
+                        null)
+
+                .setNegativeButton(
+                        "취소",
+                        null)
+
                 .create();
 
         dialog.setOnShowListener(d -> {
 
             Button saveButton =
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                    dialog.getButton(
+                            AlertDialog.BUTTON_POSITIVE);
 
             saveButton.setOnClickListener(v -> {
 
                 String name =
-                        nameInput.getText().toString().trim();
+                        nameInput
+                                .getText()
+                                .toString()
+                                .trim();
 
-                String code =
-                        codeInput.getText().toString().trim();
-
-                String rateText =
-                        rateInput.getText().toString().trim();
-
-                if (name.isEmpty() ||
-                        code.isEmpty() ||
-                        rateText.isEmpty()) {
+                if (name.isEmpty()) {
 
                     Toast.makeText(
                             this,
-                            "모든 항목을 입력해주세요.",
-                            Toast.LENGTH_SHORT
-                    ).show();
-
-                    return;
-                }
-
-                double rate;
-
-                try {
-                    rate = Double.parseDouble(rateText);
-                } catch (Exception e) {
-
-                    Toast.makeText(
-                            this,
-                            "등락률을 숫자로 입력해주세요.",
+                            "종목명을 입력해주세요.",
                             Toast.LENGTH_SHORT
                     ).show();
 
@@ -213,16 +212,32 @@ public class MainActivity extends Activity {
                 }
 
                 if (position >= 0) {
+
                     stocks.set(
                             position,
-                            new Stock(name, code, rate));
+                            new Stock(name));
+
                 } else {
+
+                    if (containsStock(name)) {
+
+                        Toast.makeText(
+                                this,
+                                "이미 추가된 종목입니다.",
+                                Toast.LENGTH_SHORT
+                        ).show();
+
+                        return;
+                    }
+
                     stocks.add(
-                            new Stock(name, code, rate));
+                            new Stock(name));
                 }
 
                 saveStocks();
+
                 refreshGrid();
+
                 dialog.dismiss();
             });
         });
@@ -230,7 +245,21 @@ public class MainActivity extends Activity {
         dialog.show();
     }
 
-    private void showEditDelete(int position) {
+    private boolean containsStock(
+            String name) {
+
+        for (Stock stock : stocks) {
+
+            if (stock.name.equalsIgnoreCase(name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void showEditDelete(
+            int position) {
 
         String[] menu = {
                 "수정",
@@ -238,37 +267,61 @@ public class MainActivity extends Activity {
         };
 
         new AlertDialog.Builder(this)
-                .setTitle(stocks.get(position).name)
-                .setItems(menu, (dialog, which) -> {
 
-                    if (which == 0) {
+                .setTitle(
+                        stocks
+                                .get(position)
+                                .name)
 
-                        showStockDialog(position);
+                .setItems(
+                        menu,
+                        (dialog, which) -> {
 
-                    } else {
+                            if (which == 0) {
 
-                        confirmDelete(position);
-                    }
-                })
+                                showStockDialog(
+                                        position);
+
+                            } else {
+
+                                confirmDelete(
+                                        position);
+                            }
+                        })
+
                 .show();
     }
 
-    private void confirmDelete(int position) {
+    private void confirmDelete(
+            int position) {
 
         new AlertDialog.Builder(this)
+
                 .setTitle("종목 삭제")
+
                 .setMessage(
-                        stocks.get(position).name +
-                        " 종목을 삭제할까요?"
+                        stocks
+                                .get(position)
+                                .name
+                                + " 종목을 삭제할까요?"
                 )
-                .setPositiveButton("삭제", (dialog, which) -> {
 
-                    stocks.remove(position);
-                    saveStocks();
-                    refreshGrid();
+                .setPositiveButton(
+                        "삭제",
+                        (dialog, which) -> {
 
-                })
-                .setNegativeButton("취소", null)
+                            stocks.remove(
+                                    position);
+
+                            saveStocks();
+
+                            refreshGrid();
+                        })
+
+                .setNegativeButton(
+                        "취소",
+                        null)
+
                 .show();
     }
 
@@ -276,24 +329,29 @@ public class MainActivity extends Activity {
 
         try {
 
-            JSONArray array = new JSONArray();
+            JSONArray array =
+                    new JSONArray();
 
             for (Stock stock : stocks) {
 
-                JSONObject object = new JSONObject();
+                JSONObject object =
+                        new JSONObject();
 
-                object.put("name", stock.name);
-                object.put("code", stock.code);
-                object.put("rate", stock.rate);
+                object.put(
+                        "name",
+                        stock.name);
 
                 array.put(object);
             }
 
             prefs.edit()
-                    .putString("stocks", array.toString())
+                    .putString(
+                            "stocks",
+                            array.toString())
                     .apply();
 
         } catch (Exception e) {
+
             e.printStackTrace();
         }
     }
@@ -303,15 +361,19 @@ public class MainActivity extends Activity {
         stocks.clear();
 
         String saved =
-                prefs.getString("stocks", "");
+                prefs.getString(
+                        "stocks",
+                        "");
 
         if (saved.isEmpty()) {
 
             stocks.add(
-                    new Stock("현대제철", "004020", 0));
+                    new Stock(
+                            "현대제철"));
 
             stocks.add(
-                    new Stock("신세계 I&C", "035510", 0));
+                    new Stock(
+                            "신세계 I&C"));
 
             return;
         }
@@ -321,21 +383,23 @@ public class MainActivity extends Activity {
             JSONArray array =
                     new JSONArray(saved);
 
-            for (int i = 0; i < array.length(); i++) {
+            for (int i = 0;
+                 i < array.length();
+                 i++) {
 
                 JSONObject object =
                         array.getJSONObject(i);
 
                 stocks.add(
                         new Stock(
-                                object.getString("name"),
-                                object.getString("code"),
-                                object.getDouble("rate")
+                                object.getString(
+                                        "name")
                         )
                 );
             }
 
         } catch (Exception e) {
+
             e.printStackTrace();
         }
     }
@@ -343,16 +407,10 @@ public class MainActivity extends Activity {
     private static class Stock {
 
         String name;
-        String code;
-        double rate;
 
-        Stock(String name,
-              String code,
-              double rate) {
+        Stock(String name) {
 
             this.name = name;
-            this.code = code;
-            this.rate = rate;
         }
     }
-}
+    }
